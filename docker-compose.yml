@@ -2,34 +2,36 @@ version: "2.3"
 services:
   server:
     build: .
-    image: yukimochi/pub_relay:server
+    image: yukimochi/pub_relay
     command: server
     restart: always
+    network_mode: "host"
     depends_on:
       - redis
-    ports:
-      - "127.0.0.1:8085:8085"
     environment:
-      - "RELAY_HOST=0.0.0.0"
+      - "RELAY_HOST=127.0.0.1"
       - "RELAY_PORT=8085"
-      - "REDIS_URL=redis://redis:6379"
+      - "REDIS_URL=redis://127.0.0.1:6379"
       - "RELAY_DOMAIN=relay.toot.yukimochi.jp"
     volumes:
       - "./actor.pem:/actor.pem"
   worker:
     build: .
-    image: yukimochi/pub_relay:worker
+    image: yukimochi/pub_relay
     command: worker
     restart: always
+    network_mode: "host"
     depends_on:
       - redis
     environment:
-      - "REDIS_URL=redis://redis:6379"
+      - "REDIS_URL=redis://127.0.0.1:6379"
       - "RELAY_DOMAIN=relay.toot.yukimochi.jp"
     volumes:
       - "./actor.pem:/actor.pem"
   redis:
     image: redis:alpine
     restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
     volumes:
       - "./redis:/data"
