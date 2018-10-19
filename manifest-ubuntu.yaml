@@ -1,0 +1,13 @@
+image: yukimochi/pub_relay:ubuntu
+manifests:
+  -
+    image: yukimochi/pub_relay:ubuntu-amd64
+    platform:
+      architecture: amd64
+      os: linux
+  -
+    image: yukimochi/pub_relay:ubuntu-arm64
+    platform:
+      architecture: arm64
+      variant: v8
+      os: linux

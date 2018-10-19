@@ -1,0 +1,111 @@
+metadata:
+  name: amd64
+
+platform:
+    name: linux/amd64
+
+pipeline:
+- crystal_build:
+    image: alpine:3.8
+    commands:
+    - apk -U upgrade
+    - apk add build-base openssl-dev crystal shards llvm5-dev llvm5-static
+    - shards install --production
+    - echo 'require "llvm/lib_llvm"; require "llvm/enums"; require "./src/server"' > hack_server.cr
+    - echo 'require "llvm/lib_llvm"; require "llvm/enums"; require "./src/worker"' > hack_worker.cr
+    - mkdir -p bin
+    - crystal build hack_server.cr --release --static -o bin/server
+    - crystal build hack_worker.cr --release --static -o bin/worker
+- docker_build:
+    image: docker:git
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /root/.docker/config.json:/root/.docker/config.json:ro
+    commands:
+        - docker version
+        - docker build . -t yukimochi/pub_relay:latest-amd64
+        - docker push yukimochi/pub_relay:latest-amd64
+
+---
+metadata:
+  name: amd64-ubuntu
+
+platform:
+    name: linux/amd64
+
+pipeline:
+- crystal_build:
+    image: ubuntu
+    commands:
+    - apt-get update
+    - apt-get -y install --no-install-recommends build-essential ca-certificates curl git gnupg2
+    - curl -sL "https://keybase.io/crystal/pgp_keys.asc" | apt-key add -
+    - echo "deb http://dist.crystal-lang.org/apt crystal main" >   /etc/apt/sources.list.d/crystal.list
+    - apt-get update
+    - apt-get -y install --no-install-recommends crystal llvm-dev libgmp-dev libz-dev libssl1.0-dev
+    - shards install --production
+    - echo 'require "llvm/lib_llvm"; require "llvm/enums"; require "./src/server"' > hack_server.cr
+    - echo 'require "llvm/lib_llvm"; require "llvm/enums"; require "./src/worker"' > hack_worker.cr
+    - mkdir -p bin
+    - crystal build hack_server.cr --release -o bin/server
+    - crystal build hack_worker.cr --release -o bin/worker
+- docker_build:
+    image: docker:git
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /root/.docker/config.json:/root/.docker/config.json:ro
+    commands:
+        - docker version
+        - docker build . -f Dockerfile.ubuntu -t yukimochi/pub_relay:ubuntu-amd64
+        - docker push yukimochi/pub_relay:ubuntu-amd64
+
+---
+metadata:
+  name: arm64
+
+platform:
+    name: linux/arm64
+
+pipeline:
+- crystal_build:
+    image: alpine:3.8
+    commands:
+    - apk -U upgrade
+    - apk add build-base openssl-dev crystal shards llvm5-dev llvm5-static
+    - shards install --production
+    - echo 'require "llvm/lib_llvm"; require "llvm/enums"; require "./src/server"' > hack_server.cr
+    - echo 'require "llvm/lib_llvm"; require "llvm/enums"; require "./src/worker"' > hack_worker.cr
+    - mkdir -p bin
+    - crystal build hack_server.cr --release --static -o bin/server
+    - crystal build hack_worker.cr --release --static -o bin/worker
+- docker_build:
+    image: docker:git
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /root/.docker/config.json:/root/.docker/config.json:ro
+    commands:
+        - docker version
+        - docker build . -t yukimochi/pub_relay:latest-arm64
+        - docker push yukimochi/pub_relay:latest-arm64
+
+---
+metadata:
+  name: push_manifest
+
+platform:
+    name: linux/amd64
+
+pipeline:
+- push_manifest:
+    image: docker:git
+    volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - /root/.docker/config.json:/root/.docker/config.json:ro
+    commands:
+        - wget https://github.com/estesp/manifest-tool/releases/download/v0.7.0/manifest-tool-linux-amd64 -O /usr/bin/manifest-tool
+        - chmod +x /usr/bin/manifest-tool
+        - manifest-tool push from-spec manifest.yaml           
+
+depends_on:
+- amd64
+- arm64
