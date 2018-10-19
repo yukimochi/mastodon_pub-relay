@@ -13,8 +13,8 @@ COPY . /pub_relay/
 RUN echo 'require "llvm/lib_llvm"; require "llvm/enums"; require "./src/server"' > hack_server.cr && \
     echo 'require "llvm/lib_llvm"; require "llvm/enums"; require "./src/worker"' > hack_worker.cr && \
     mkdir -p bin && \
-    crystal build hack_server.cr --static -o bin/server && \
-    crystal build hack_worker.cr --static -o bin/worker
+    crystal build hack_server.cr --release --static -o bin/server && \
+    crystal build hack_worker.cr --release --static -o bin/worker
 
 FROM alpine:3.8
 
