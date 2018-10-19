@@ -33,7 +33,11 @@ class InboxHandler
     when .unfollow?
       handle_unfollow(actor_from_signature, activity)
     when .valid_for_rebroadcast?
-      handle_forward(actor_from_signature, request_body)
+      if activity.subscribed?
+        handle_forward(actor_from_signature, request_body)
+      else
+        error(403, "Unsubscribed instance is not allowed.")
+      end
     end
 
     response.status_code = 202
@@ -45,6 +49,10 @@ class InboxHandler
   def handle_follow(actor, activity)
     unless activity.object_is_public_collection?
       error(400, "Follow only allowed for #{Activity::PUBLIC_COLLECTION}")
+    end
+
+    unless activity.subscribable?
+      error(403, "This instance is not allowed.")
     end
 
     accept_activity = {
@@ -71,6 +79,8 @@ class InboxHandler
   end
 
   def handle_forward(actor, request_body)
+    return unless actor.person?
+
     # TODO: cache the subscriptions
     bulk_args = PubRelay.redis.keys("subscription:*").compact_map do |key|
       key = key.as(String)
@@ -216,8 +226,9 @@ class InboxHandler
     property public_key : Key
     getter endpoints : Endpoints?
     getter inbox : String
+    getter type : String
 
-    def initialize(@id, @public_key, @endpoints, @inbox)
+    def initialize(@id, @public_key, @endpoints, @inbox, @type)
     end
 
     def inbox_url
@@ -226,6 +237,10 @@ class InboxHandler
 
     def domain
       URI::Punycode.to_ascii(URI.parse(id).host.not_nil!.strip.downcase)
+    end
+
+    def person?
+      type == "Person"
     end
   end
 
