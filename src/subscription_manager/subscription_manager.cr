@@ -139,6 +139,15 @@ class PubRelay::SubscriptionManager
     @redis.del(key_for(unsubscribe.domain))
   end
 
+  def check_subscribe(domain : String)
+    state = get_state(domain)
+    state.subscribed?
+  end
+
+  def check_subscribable(domain : String)    
+    @redis.exists("relay:blocked_domain:#{domain}") != 1
+  end
+
   def deliver(message : String, source_domain : String)
     counter = new_counter
     delivery = DeliverWorker::Delivery.new(message, source_domain, counter, accept: false)

@@ -140,8 +140,9 @@ struct PubRelay::WebServer::HTTPSignature
     property public_key : Key
     getter endpoints : Endpoints?
     getter inbox : String
+    getter type : String
 
-    def initialize(@id, @public_key, @endpoints, @inbox)
+    def initialize(@id, @public_key, @endpoints, @inbox, @type)
     end
 
     def inbox_url
@@ -150,6 +151,10 @@ struct PubRelay::WebServer::HTTPSignature
 
     def domain
       URI::Punycode.to_ascii(URI.parse(id).host.not_nil!.strip.downcase)
+    end
+
+    def person?
+      type == "Person"
     end
   end
 

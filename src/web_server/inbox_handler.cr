@@ -27,7 +27,11 @@ class PubRelay::WebServer::InboxHandler
     when .unfollow?
       handle_unfollow(actor_from_signature, activity)
     when .valid_for_rebroadcast?
-      handle_forward(actor_from_signature, request_body)
+      if @subscription_manager.check_subscribe(actor_from_signature.domain)
+        handle_forward(actor_from_signature, request_body)
+      else
+        error(403, "Unsubscribed instance is not allowed.")
+      end
     end
 
     response.status_code = 202
@@ -41,6 +45,10 @@ class PubRelay::WebServer::InboxHandler
 
     inbox_url = URI.parse(actor.inbox_url) rescue nil
     error(400, "Inbox URL was not a valid URL") unless inbox_url
+
+    unless @subscription_manager.check_subscribable(actor.domain)
+      error(403, "Your instance is not allowed.")
+    end
 
     @subscription_manager.send(
       SubscriptionManager::Subscription.new(
@@ -59,6 +67,8 @@ class PubRelay::WebServer::InboxHandler
   end
 
   def handle_forward(actor, request_body)
+    return unless actor.person?
+
     @subscription_manager.deliver(request_body, source_domain: actor.domain)
   end
 
