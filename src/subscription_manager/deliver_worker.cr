@@ -41,6 +41,7 @@ class PubRelay::SubscriptionManager::DeliverWorker
       "Host"   => @inbox_url.host.not_nil!,
       "Date"   => HTTP.format_time(Time.utc_now),
       "Digest" => "SHA-256=#{body_hash}",
+      "User-Agent" => "YUKIMOCHI Toot Relay Service (Crystal; pub_relay; https://#{ ENV["RELAY_DOMAIN"] })",
     }
 
     signed_headers = "(request-target) host date digest"
